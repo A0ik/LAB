@@ -4127,23 +4127,6 @@ var _selectedContratType = null;
 
 
 // Initialisation automatique des modèles de contrats au chargement de la page
-function initContratsPage() {
-  // Appeler renderContratModeles après un court délai pour s'assurer que le DOM est prêt
-  setTimeout(function() {
-    renderContratModeles();
-  }, 100);
-}
-
-// Appeler l'initialisation lorsque la page des contrats est affichée
-var originalNav = window.nav;
-window.nav = function(el, pageId) {
-  if(originalNav) originalNav(el, pageId);
-  if(pageId === 'contrats') {
-    initContratsPage();
-  }
-};
-
-
 var CC_LIST = [
   {label:"Restauration rapide",                   idcc:"1501", pe_cdd:"1j/sem (max 2 sem)", pe_cdi:"2 mois",  pe_cdi_cad:"4 mois",  preavis:"1 mois",         grille:"Niveau I à V"},
   {label:"Hôtellerie-Restauration",               idcc:"1979", pe_cdd:"1 mois",             pe_cdi:"1 mois",  pe_cdi_cad:"3 mois",  preavis:"1 mois",         grille:"Niveau I à V"},
