@@ -17,7 +17,14 @@
       "Bash(node add_contract_models.js)",
       "Bash(start index.html)",
       "Bash(git init *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m '♻️ Reset complet + améliorations *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git push *)",
+      "Bash(node fix_contracts_display.js)",
+      "Bash(node fix_encoding.js)",
+      "Bash(git commit -m '✅ Correction et amélioration des modèles de contrats *)"
     ]
   }
 }
