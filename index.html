@@ -2568,6 +2568,7 @@ function addEcheance(dateStr, jours){
 
 let factures=[];
 let nextF=1;
+let nextDevis=1;
 
 const relances=[];
 const bpData=[];
@@ -2580,7 +2581,11 @@ let currentFacture = null;
 
 function viewFacture(num){
   const f = factures.find(x=>x.num===num);
-  if(!f) return;
+  if(!f) {
+    toast('❌ Facture "'+num+'" introuvable');
+    console.error('Facture non trouvée:', num);
+    return;
+  }
   currentFacture = f;
   const client = clients.find(c=>c.name===f.client) || {name:f.client,adresse:'—',siren:'—',email:'—'};
   const tva = Math.round(f.amt * 0.20);
@@ -4213,6 +4218,51 @@ function selectContratType(id) {
   var el = document.getElementById("ct-type-"+id);
   if (el && t) { el.style.borderColor = t.color; el.style.background = t.color+"18"; }
   renderSpecificFields(id);
+
+  // Pré-remplir les champs avec les données du modèle si disponibles
+  if(window._contratExemples && window._contratExemples[id]) {
+    fillContratFromExemple(window._contratExemples[id]);
+  }
+}
+
+// Fonction séparée pour pré-remplir depuis un modèle
+function fillContratFromExemple(data) {
+  function set(id, val) { var el = document.getElementById(id); if(el && val) el.value = val; }
+
+  set('ct-type-contrat', data.type_contrat || '');
+  set('ct-convention', data.convention || '');
+  set('ct-entreprise-nom', data.entreprise_nom || '');
+  set('ct-entreprise-siret', data.entreprise_siret || '');
+  set('ct-entreprise-adresse', data.entreprise_adresse || '');
+  set('ct-code-naf', data.code_naf || '');
+  set('ct-representant', data.representant || '');
+  set('ct-qualite-representant', data.qualite_representant || '');
+  set('ct-salarie-civilite', data.salarie_civilite || '');
+  set('ct-salarie-nom', data.salarie_nom || '');
+  set('ct-salarie-naissance', data.salarie_naissance || '');
+  set('ct-salarie-lieu-naissance', data.salarie_lieu_naissance || '');
+  set('ct-salarie-nationalite', data.salarie_nationalite || '');
+  set('ct-salarie-adresse', data.salarie_adresse || '');
+  set('ct-salarie-nss', data.salarie_nss || '');
+  set('ct-poste', data.poste || '');
+  set('ct-classification', data.classification || '');
+  set('ct-salaire-brut', data.salaire_brut || '');
+  set('ct-heures-semaine', data.heures_semaine || '');
+  set('ct-heures-mois', data.heures_mois || '');
+  set('ct-taux-horaire', data.taux_horaire || '');
+  set('ct-date-debut', data.date_debut || '');
+  set('ct-heure-embauche', data.heure_embauche || '');
+  set('ct-lieu-travail', data.lieu_travail || '');
+  set('ct-ville-contrat', data.ville_contrat || '');
+  set('ct-service-sante', data.service_sante || '');
+  set('ct-duree-cdd', data.duree_cdd || '');
+  set('ct-date-fin', data.date_fin || '');
+  set('ct-motif-cdd', data.motif_cdd || '');
+  set('ct-nom-chantier', data.nom_chantier || '');
+  set('ct-adresse-chantier', data.adresse_chantier || '');
+  set('ct-nature-travaux', data.nature_travaux || '');
+
+  if(data.type_contrat) { renderSpecificFields(data.type_contrat); }
 }
 
 function renderSpecificFields(id) {
@@ -5222,12 +5272,49 @@ function previewContrat() {
   openModal("previewContrat");
 }
 
-function printContratModal() {
+// ── Génération PDF améliorée avec jsPDF ───────────────────
+async function printContratModal() {
   var c = document.getElementById("modal-contrat-content");
   if (!c) return;
-  printHtmlContent(c.innerHTML, "Contrat de travail");
+
+  var btn = event && event.target;
+  var origText = btn ? btn.textContent : '';
+  if(btn) { btn.textContent = '⏳ Génération…'; btn.disabled = true; }
+
+  try {
+    toast('⏳ Génération du PDF en cours…');
+
+    var canvas = await html2canvas(c, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false
+    });
+
+    var imgW = 210, imgH = canvas.height * imgW / canvas.width;
+    var {jsPDF} = window.jspdf;
+    var pdf = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+    var pageH = 297, y = 0;
+
+    while(y < imgH) {
+      if(y > 0) pdf.addPage();
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.95), 'JPEG', 0, -y, imgW, imgH);
+      y += pageH;
+    }
+
+    var filename = 'Contrat_'+(c.querySelector('strong')?.textContent.replace(/\s+/g,'_')||'travail')+'.pdf';
+    pdf.save(filename);
+
+    toast('✅ PDF généré avec succès : ' + filename);
+  } catch(e) {
+    console.error('Erreur PDF:', e);
+    toast('❌ Erreur lors de la génération PDF : ' + e.message);
+  } finally {
+    if(btn) { btn.textContent = origText; btn.disabled = false; }
+  }
 }
 
+// ── Fallback: impression navigateur si jsPDF échoue ─────────
 function printHtmlContent(html, title) {
   var win = window.open("","_blank","width=900,height=1000");
   win.document.write("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>"+title+"</title>"
@@ -5253,41 +5340,73 @@ function genContratDocx() {
 
 function genDPAE() {
   var data = getContratData();
-  if (!data.salarie_nom || !data.entreprise_siret) { toast("SIRET et nom du salarie requis"); return; }
-  var dateEmb = data.date_debut||""; if(dateEmb.indexOf("/")>-1) dateEmb=dateEmb.split("/").reverse().join("-");
+
+  // Validation améliorée
+  if (!data.salarie_nom) { toast("❌ Le nom du salarié est requis"); return; }
+  if (!data.entreprise_siret) { toast("❌ Le SIRET de l'entreprise est requis"); return; }
+  if (!data.date_debut) { toast("❌ La date de début est requise"); return; }
+
+  var dateEmb = data.date_debut||"";
+  if(dateEmb.indexOf("/")>-1) dateEmb=dateEmb.split("/").reverse().join("-");
+
   var nss=(data.salarie_nss||"").replace(/\s/g,"");
+
+  // Nettoyer les valeurs pour éviter les caractères XML invalides
+  function cleanXML(str) {
+    if(!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+  }
+
+  // Extraire prénom et nom
+  var nomParts = (data.salarie_nom||"").trim().split(/\s+/);
+  var salarieNom = nomParts.length > 1 ? nomParts.slice(-1)[0] : (data.salarie_nom||"");
+  var salariePrenom = nomParts.length > 1 ? nomParts.slice(0,-1).join(" ") : "";
+
   var xml="<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
     +"<!-- DPAE - Déclaration Préalable à l'Embauche -->\n"
     +"<!-- A déposer sur net-entreprises.fr -->\n"
     +"<DPAE version=\"1.0\">\n"
     +"  <Emetteur>\n"
-    +"    <SIRET>"+(data.entreprise_siret||"").replace(/[\s.]/g,"")+"</SIRET>\n"
-    +"    <RaisonSociale>"+(data.entreprise_nom||"")+"</RaisonSociale>\n"
-    +"    <Adresse>"+(data.entreprise_adresse||"")+"</Adresse>\n"
-    +"    <CodeAPE>"+(data.code_naf||"")+"</CodeAPE>\n"
+    +"    <SIRET>"+cleanXML((data.entreprise_siret||"").replace(/[\s.]/g,""))+"</SIRET>\n"
+    +"    <RaisonSociale>"+cleanXML(data.entreprise_nom||"")+"</RaisonSociale>\n"
+    +"    <Adresse>"+cleanXML(data.entreprise_adresse||"")+"</Adresse>\n"
+    +"    <CodeAPE>"+cleanXML(data.code_naf||"")+"</CodeAPE>\n"
     +"  </Emetteur>\n"
     +"  <Salarie>\n"
-    +"    <Civilite>"+(data.salarie_civilite||"M.")+"</Civilite>\n"
-    +"    <Nom>"+(data.salarie_nom||"").split(" ").slice(-1)[0]+"</Nom>\n"
-    +"    <Prenom>"+(data.salarie_nom||"").split(" ").slice(0,-1).join(" ")+"</Prenom>\n"
-    +"    <DateNaissance>"+(data.salarie_naissance?data.salarie_naissance.split("/").reverse().join("-"):"")+"</DateNaissance>\n"
-    +"    <LieuNaissance>"+(data.salarie_lieu_naissance||"")+"</LieuNaissance>\n"
-    +"    <NIR>"+nss+"</NIR>\n"
+    +"    <Civilite>"+cleanXML(data.salarie_civilite||"M.")+"</Civilite>\n"
+    +"    <Nom>"+cleanXML(salarieNom)+"</Nom>\n"
+    +"    <Prenom>"+cleanXML(salariePrenom)+"</Prenom>\n"
+    +"    <DateNaissance>"+cleanXML(data.salarie_naissance?data.salarie_naissance.split("/").reverse().join("-"):"")+"</DateNaissance>\n"
+    +"    <LieuNaissance>"+cleanXML(data.salarie_lieu_naissance||"")+"</LieuNaissance>\n"
+    +"    <NIR>"+cleanXML(nss)+"</NIR>\n"
     +"  </Salarie>\n"
     +"  <Embauche>\n"
-    +"    <DateEmbauche>"+dateEmb+"</DateEmbauche>\n"
-    +"    <HeureEmbauche>"+(data.heure_embauche||"08:00")+"</HeureEmbauche>\n"
-    +"    <TypeContrat>"+(data.type_contrat||"CDI")+"</TypeContrat>\n"
-    +"    <Qualification>"+(data.poste||"")+"</Qualification>\n"
-    +"    <Convention>"+(data.convention||"")+"</Convention>\n"
-    +"    <DureeSemaine>"+(data.heures_semaine||"35")+"</DureeSemaine>\n"
+    +"    <DateEmbauche>"+cleanXML(dateEmb)+"</DateEmbauche>\n"
+    +"    <HeureEmbauche>"+cleanXML(data.heure_embauche||"08:00")+"</HeureEmbauche>\n"
+    +"    <TypeContrat>"+cleanXML(data.type_contrat||"CDI")+"</TypeContrat>\n"
+    +"    <Qualification>"+cleanXML(data.poste||"")+"</Qualification>\n"
+    +"    <Convention>"+cleanXML(data.convention||"")+"</Convention>\n"
+    +"    <DureeSemaine>"+cleanXML(data.heures_semaine||"35")+"</DureeSemaine>\n"
     +"  </Embauche>\n"
-    +"  <ServiceSante><Denomination>"+(data.service_sante||"A completer")+"</Denomination></ServiceSante>\n"
+    +"  <ServiceSante><Denomination>"+cleanXML(data.service_sante||"A completer")+"</Denomination></ServiceSante>\n"
     +"</DPAE>";
-  var blob=new Blob([xml],{type:"application/xml"});
-  var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-  a.download="DPAE_"+(data.salarie_nom||"salarie").replace(/\s/g,"_")+"_"+dateEmb+".xml"; a.click();
-  toast("DPAE XML telechargee — deposez-la sur net-entreprises.fr");
+
+  try {
+    var blob=new Blob([xml],{type:"application/xml"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="DPAE_"+cleanXML((data.salarie_nom||"salarie").replace(/\s/g,"_"))+"_"+dateEmb+".xml";
+    a.click();
+    toast("✅ DPAE XML téléchargée — déposez-la sur net-entreprises.fr");
+  } catch(e) {
+    toast("❌ Erreur lors de la génération DPAE : " + e.message);
+    console.error("Erreur DPAE:", e);
+  }
 }
 
 function emailContrat() {
@@ -5712,51 +5831,6 @@ function renderContratModeles() {
 
   // Store exemples for preview
   window._contratExemples = exemples;
-}
-
-
-function selectContratType(typeId) {
-  _selectedContratType = typeId;
-  var data = window._contratExemples ? window._contratExemples[typeId] : null;
-  if(!data) return;
-
-  // Pré-remplir les champs du contrat avec les données de l'exemple
-  function set(id, val) { var el = document.getElementById(id); if(el && val) el.value = val; }
-
-  set('ct-type-contrat', data.type_contrat || '');
-  set('ct-convention', data.convention || '');
-  set('ct-entreprise-nom', data.entreprise_nom || '');
-  set('ct-entreprise-siret', data.entreprise_siret || '');
-  set('ct-entreprise-adresse', data.entreprise_adresse || '');
-  set('ct-code-naf', data.code_naf || '');
-  set('ct-representant', data.representant || '');
-  set('ct-qualite-representant', data.qualite_representant || '');
-  set('ct-salarie-civilite', data.salarie_civilite || '');
-  set('ct-salarie-nom', data.salarie_nom || '');
-  set('ct-salarie-naissance', data.salarie_naissance || '');
-  set('ct-salarie-lieu-naissance', data.salarie_lieu_naissance || '');
-  set('ct-salarie-nationalite', data.salarie_nationalite || '');
-  set('ct-salarie-adresse', data.salarie_adresse || '');
-  set('ct-salarie-nss', data.salarie_nss || '');
-  set('ct-poste', data.poste || '');
-  set('ct-classification', data.classification || '');
-  set('ct-salaire-brut', data.salaire_brut || '');
-  set('ct-heures-semaine', data.heures_semaine || '');
-  set('ct-heures-mois', data.heures_mois || '');
-  set('ct-taux-horaire', data.taux_horaire || '');
-  set('ct-date-debut', data.date_debut || '');
-  set('ct-heure-embauche', data.heure_embauche || '');
-  set('ct-lieu-travail', data.lieu_travail || '');
-  set('ct-ville-contrat', data.ville_contrat || '');
-  set('ct-service-sante', data.service_sante || '');
-  set('ct-duree-cdd', data.duree_cdd || '');
-  set('ct-date-fin', data.date_fin || '');
-  set('ct-motif-cdd', data.motif_cdd || '');
-  set('ct-nom-chantier', data.nom_chantier || '');
-  set('ct-adresse-chantier', data.adresse_chantier || '');
-  set('ct-nature-travaux', data.nature_travaux || '');
-
-  toast('✅ Modèle "'+typeId+'" chargé - Personnalisez les champs');
 }
 
 
@@ -7032,7 +7106,16 @@ function addFacture() {
   var tvaRate = parseFloat((document.getElementById('nf-tva-rate')||{value:'20'}).value) || 20;
   var notes   = (document.getElementById('nf-notes')||{}).value || '';
 
-  if(!client) { toast('Client requis'); return; }
+  // Validation améliorée
+  if(!client) { toast('❌ Veuillez sélectionner un client'); return; }
+  if(!num) { toast('❌ Le numéro de facture est requis'); return; }
+  if(!date) { toast('❌ La date est requise'); return; }
+
+  // Vérifier que le numéro n'est pas déjà utilisé (sauf en mode édition)
+  if(!_editFactureNum && factures.some(function(f){ return f.num === num; })) {
+    toast('❌ Ce numéro est déjà utilisé. Veuillez en choisir un autre.');
+    return;
+  }
 
   // ── MODE AVOIR ──
   if(_docType === 'avoir') {
@@ -9396,6 +9479,39 @@ async function loadAllData(){
       try{ localStorage.setItem('lexis_brouillons',JSON.stringify(d.drafts)); }catch(e){}
     }
   } catch(e){ console.warn('Erreur chargement:',e); }
+  // Recalculer les numéros automatiques pour éviter les duplications
+  recalculateNextNumbers();
+}
+
+// Fonction pour recalculer les prochains numéros de facture/devis
+function recalculateNextNumbers() {
+  var maxF = 0, maxD = 0;
+  var currentYear = new Date().getFullYear();
+
+  factures.forEach(function(f) {
+    var numStr = f.num || '';
+    var yearMatch = numStr.match(/(\d{4})/);
+    var numYear = yearMatch ? parseInt(yearMatch[1]) : currentYear;
+
+    // Ne considérer que les factures de l'année courante
+    if(numYear === currentYear) {
+      var numMatch = numStr.match(/(\d+)$/);
+      if(numMatch) {
+        var num = parseInt(numMatch[1]) || 0;
+        if(f.type === 'devis') {
+          if(num > maxD) maxD = num;
+        } else {
+          if(num > maxF) maxF = num;
+        }
+      }
+    }
+  });
+
+  // Mettre à jour nextF et nextDevis avec le max + 1
+  if(maxF > 0) nextF = maxF + 1;
+  if(maxD > 0) nextDevis = maxD + 1;
+
+  console.log('Numéros recalculés - nextF:', nextF, 'nextDevis:', nextDevis);
 }
 
 function applyGlobalCabinet(){
