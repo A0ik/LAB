@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Supabase__get_project",
+      "mcp__claude_ai_Supabase__get_project_url",
+      "mcp__claude_ai_Supabase__get_publishable_keys",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "mcp__claude_ai_Vercel__deploy_to_vercel",
+      "mcp__claude_ai_Vercel__list_teams",
+      "mcp__claude_ai_Vercel__list_deployments",
+      "mcp__claude_ai_Vercel__get_deployment",
+      "mcp__claude_ai_Vercel__get_deployment_build_logs",
+      "PowerShell(vercel deploy --prod 2>&1)",
+      "Bash(node reset_data.js)",
+      "Bash(node make_invoice_editable.js)",
+      "Bash(node add_contract_models.js)",
+      "Bash(start index.html)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "liveandbest-consulting",
+  "version": "1.0.0",
+  "description": "Live&Best Consulting — Gestion Portefeuille Clients",
+  "engines": {
+    "node": ">=18"
+  }
+}

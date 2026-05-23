@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live&amp;Best Consulting — Connexion</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --navy:#0D1B2A;--navy-mid:#1A2D42;--gold:#C9A84C;--gold-l:#E8C878;--gold-p:#F5EDD4;
+  --teal:#1B7A6E;--teal-l:#25A898;--coral:#D4503A;--brd:#E2E8F0;--txt:#1A202C;--txtm:#718096;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+
+/* Background pattern */
+body::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse at 20% 50%, rgba(201,168,76,.08) 0%, transparent 60%),
+  radial-gradient(ellipse at 80% 20%, rgba(27,122,110,.06) 0%, transparent 50%);
+  pointer-events:none;}
+
+.bg-shapes{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.bg-circle{position:absolute;border-radius:50%;opacity:.04;}
+.bg-circle:nth-child(1){width:600px;height:600px;background:var(--gold);top:-200px;right:-100px;}
+.bg-circle:nth-child(2){width:400px;height:400px;background:var(--teal);bottom:-150px;left:-100px;}
+
+.login-wrap{position:relative;z-index:1;width:100%;max-width:420px;padding:20px;}
+
+.login-card{background:rgba(255,255,255,.04);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:40px 36px;box-shadow:0 32px 64px rgba(0,0,0,.4);}
+
+.logo-wrap{text-align:center;margin-bottom:36px;}
+.logo-ico{width:56px;height:56px;background:linear-gradient(135deg,var(--gold),var(--gold-l));border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--navy);margin:0 auto 14px;}
+.logo-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;line-height:1.2;}
+.logo-sub{font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:2.5px;margin-top:5px;}
+
+.login-title{font-size:14px;font-weight:600;color:rgba(255,255,255,.7);text-align:center;margin-bottom:28px;}
+
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.field input{width:100%;padding:13px 16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;color:#fff;transition:all .2s;outline:none;}
+.field input::placeholder{color:rgba(255,255,255,.25);}
+.field input:focus{border-color:var(--gold);background:rgba(255,255,255,.1);}
+.field input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 1000px rgba(13,27,42,.9) inset;}
+
+.btn-login{width:100%;padding:14px;background:linear-gradient(135deg,var(--gold),var(--gold-l));border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;color:var(--navy);cursor:pointer;transition:all .2s;margin-top:8px;letter-spacing:.3px;}
+.btn-login:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(201,168,76,.4);}
+.btn-login:active{transform:translateY(0);}
+.btn-login:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+
+.error-msg{display:none;margin-top:14px;padding:11px 14px;background:rgba(212,80,58,.15);border:1px solid rgba(212,80,58,.3);border-radius:8px;font-size:13px;color:#ff8875;font-weight:500;text-align:center;}
+.error-msg.show{display:block;}
+
+.forgot-link{display:block;text-align:center;margin-top:16px;font-size:12px;color:rgba(255,255,255,.35);cursor:pointer;transition:color .2s;}
+.forgot-link:hover{color:rgba(255,255,255,.6);}
+
+.footer-text{text-align:center;margin-top:28px;font-size:11px;color:rgba(255,255,255,.2);}
+
+/* Reset password form */
+.reset-wrap{display:none;}
+.reset-wrap.show{display:block;}
+.login-form-wrap.hide{display:none;}
+
+.back-link{display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(255,255,255,.4);cursor:pointer;margin-bottom:20px;transition:color .2s;}
+.back-link:hover{color:rgba(255,255,255,.7);}
+
+.success-msg{display:none;margin-top:14px;padding:11px 14px;background:rgba(27,122,110,.15);border:1px solid rgba(27,122,110,.3);border-radius:8px;font-size:13px;color:#4ade80;font-weight:500;text-align:center;}
+.success-msg.show{display:block;}
+
+.loading-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--navy);animation:dot-pulse .9s infinite ease-in-out;margin:0 2px;}
+.loading-dot:nth-child(2){animation-delay:.15s;}
+.loading-dot:nth-child(3){animation-delay:.3s;}
+@keyframes dot-pulse{0%,80%,100%{transform:scale(0.6);opacity:.4;}40%{transform:scale(1);opacity:1;}}
+</style>
+</head>
+<body>
+<div class="bg-shapes">
+  <div class="bg-circle"></div>
+  <div class="bg-circle"></div>
+</div>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="logo-wrap">
+      <div class="logo-ico">L</div>
+      <div class="logo-name">Live&amp;Best Consulting</div>
+      <div class="logo-sub">Gestion Portefeuille Clients</div>
+    </div>
+
+    <!-- Formulaire de connexion -->
+    <div class="login-form-wrap" id="loginForm">
+      <div class="login-title">Espace privé — Accès restreint</div>
+
+      <div class="field">
+        <label>Adresse email</label>
+        <input type="email" id="email" placeholder="votre@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="password" placeholder="••••••••••" autocomplete="current-password">
+      </div>
+
+      <button class="btn-login" id="loginBtn">
+        Se connecter
+      </button>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <span class="forgot-link" id="forgotLink">Mot de passe oublié ?</span>
+    </div>
+
+    <!-- Formulaire reset mot de passe -->
+    <div class="reset-wrap" id="resetForm">
+      <div class="back-link" id="backLink">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Retour
+      </div>
+      <div class="login-title">Réinitialisation du mot de passe</div>
+      <div class="field">
+        <label>Adresse email</label>
+        <input type="email" id="resetEmail" placeholder="votre@email.com">
+      </div>
+      <button class="btn-login" id="resetBtn">Envoyer le lien</button>
+      <div class="error-msg" id="resetError"></div>
+      <div class="success-msg" id="resetSuccess"></div>
+    </div>
+
+    <div class="footer-text">Live&amp;Best Consulting &copy; 2026 — Accès sécurisé</div>
+  </div>
+</div>
+
+<script>
+var SUPA_URL = 'https://cqlqenzrrtcnxxwgobpk.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxbHFlbnpycnRjbnh4d2dvYnBrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzYwODYsImV4cCI6MjA5NTExMjA4Nn0.zNNbZdh21TXhsJMxoBmuMTho7c6YbxS0p8ByNqYZsZY';
+
+document.addEventListener('DOMContentLoaded', function() {
+  var loginBtn     = document.getElementById('loginBtn');
+  var resetBtn     = document.getElementById('resetBtn');
+  var forgotLink   = document.getElementById('forgotLink');
+  var backLink     = document.getElementById('backLink');
+  var loginForm    = document.getElementById('loginForm');
+  var resetForm    = document.getElementById('resetForm');
+  var errorMsg     = document.getElementById('errorMsg');
+  var resetError   = document.getElementById('resetError');
+  var resetSuccess = document.getElementById('resetSuccess');
+
+  function getClient() {
+    if (!window.supabase) throw new Error('Librairie non chargée — rechargez la page');
+    return window.supabase.createClient(SUPA_URL, SUPA_KEY);
+  }
+
+  function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; el.classList.add('show'); }
+  function hideErr(el) { el.classList.remove('show'); el.style.display = ''; }
+
+  forgotLink.addEventListener('click', function() {
+    loginForm.style.display = 'none';
+    resetForm.style.display = 'block';
+  });
+
+  backLink.addEventListener('click', function() {
+    resetForm.style.display = 'none';
+    loginForm.style.display = 'block';
+  });
+
+  loginBtn.addEventListener('click', async function() {
+    var email    = document.getElementById('email').value.trim();
+    var password = document.getElementById('password').value;
+    hideErr(errorMsg);
+
+    if (!email || !password) { showErr(errorMsg, 'Veuillez remplir tous les champs.'); return; }
+
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>';
+
+    try {
+      var result = await getClient().auth.signInWithPassword({ email: email, password: password });
+      if (result.error) {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Se connecter';
+        showErr(errorMsg, result.error.message === 'Invalid login credentials'
+          ? 'Email ou mot de passe incorrect.'
+          : 'Erreur : ' + result.error.message);
+        return;
+      }
+      loginBtn.textContent = '✓ Connexion réussie';
+      window.location.replace('/');
+    } catch(e) {
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Se connecter';
+      showErr(errorMsg, e.message || 'Erreur inattendue.');
+    }
+  });
+
+  resetBtn.addEventListener('click', async function() {
+    var email = document.getElementById('resetEmail').value.trim();
+    hideErr(resetError);
+    resetSuccess.classList.remove('show');
+    if (!email) { showErr(resetError, 'Veuillez saisir votre email.'); return; }
+
+    try {
+      var result = await getClient().auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password'
+      });
+      if (result.error) { showErr(resetError, 'Erreur : ' + result.error.message); return; }
+      resetSuccess.textContent = 'Lien envoyé ! Vérifiez votre boîte email.';
+      resetSuccess.classList.add('show');
+    } catch(e) {
+      showErr(resetError, e.message || 'Erreur inattendue.');
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    if (resetForm.style.display === 'block') resetBtn.click();
+    else loginBtn.click();
+  });
+
+  // Redirection si déjà connecté
+  try {
+    getClient().auth.getSession().then(function(r) {
+      if (r.data && r.data.session) window.location.replace('/');
+    });
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
