@@ -24,7 +24,8 @@
       "Bash(git push *)",
       "Bash(node fix_contracts_display.js)",
       "Bash(node fix_encoding.js)",
-      "Bash(git commit -m '✅ Correction et amélioration des modèles de contrats *)"
+      "Bash(git commit -m '✅ Correction et amélioration des modèles de contrats *)",
+      "Bash(git commit -m '🐛 Correction doublon fonction contratTab *)"
     ]
   }
 }
